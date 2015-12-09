@@ -174,18 +174,8 @@ bool
 REPL::IOHandlerIsInputComplete (IOHandler &io_handler,
                                 StringList &lines)
 {
-    // Check for meta command
-    const size_t num_lines = lines.GetSize();
-    if (num_lines == 1)
-    {
-        const char *first_line = lines.GetStringAtIndex(0);
-        if (first_line[0] == ':')
-            return true; // Meta command is a single line where that starts with ':'
-    }
-    
-    // Check if REPL input is done
-    std::string source_string (lines.CopyList());
-    return SourceIsComplete(source_string);
+    // Read all the code until the of the input stream.
+    return false;
 }
 
 int
@@ -341,6 +331,8 @@ REPL::IOHandlerInputComplete (IOHandler &io_handler, std::string &code)
             expr_options.SetREPLEnabled (true);
             expr_options.SetColorizeErrors(colorize_err);
             expr_options.SetPoundLine(m_repl_source_path.c_str(), m_code.GetSize() + 1);
+            // We want the code to pause before running to allow us to set up breakpoints.
+            expr_options.SetDebug(true);
             if (m_command_options.timeout > 0)
                 expr_options.SetTimeoutUsec(m_command_options.timeout);
             else
@@ -456,8 +448,7 @@ REPL::IOHandlerInputComplete (IOHandler &io_handler, std::string &code)
                             error_sp->Printf("error: could not fetch result -- %s\n", error.AsCString());
                             break;
                         case lldb::eExpressionStoppedForDebug:
-                            // Shoulnd't happen???
-                            error_sp->Printf("error: stopped for debug -- %s\n", error.AsCString());
+                            // This is what we want.
                             break;
                     }
                 }
@@ -632,11 +623,7 @@ REPL::RunLoop ()
     
     if (m_dedicated_repl_mode)
     {
-        // If we were in dedicated REPL mode we would have started the
-        // IOHandler thread, and we should kill our process
-        lldb::ProcessSP process_sp = m_target.GetProcessSP();
-        if (process_sp && process_sp->IsAlive())
-            process_sp->Destroy(false);
+        // We want to keep our process alive.
         
         // Wait for the IO handler thread to exit (TODO: don't do this if the IO handler thread already exists...)
         debugger.JoinIOHandlerThread();
