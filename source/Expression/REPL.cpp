@@ -340,10 +340,6 @@ REPL::IOHandlerInputComplete (IOHandler &io_handler, std::string &code)
             
             expr_options.SetLanguage(GetLanguage());
             
-            PersistentExpressionState *persistent_state = m_target.GetPersistentExpressionStateForLanguage(GetLanguage());
-            
-            const size_t var_count_before = persistent_state->GetSize();
-            
             const char *expr_prefix = nullptr;
             lldb::ValueObjectSP result_valobj_sp;
             Error error;
@@ -379,19 +375,6 @@ REPL::IOHandlerInputComplete (IOHandler &io_handler, std::string &code)
                             error_sp->PutCString("(void)\n");
                             handled = true;
                         }
-                    }
-                }
-                
-                if (debugger.GetPrintDecls())
-                {
-                    for (size_t vi = var_count_before, ve = persistent_state->GetSize();
-                         vi != ve;
-                         ++vi)
-                    {
-                        lldb::ExpressionVariableSP persistent_var_sp = persistent_state->GetVariableAtIndex(vi);
-                        lldb::ValueObjectSP valobj_sp = persistent_var_sp->GetValueObject();
-                        
-                        PrintOneVariable(debugger, output_sp, valobj_sp, persistent_var_sp.get());
                     }
                 }
 
