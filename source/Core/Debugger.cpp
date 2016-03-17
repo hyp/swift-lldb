@@ -1943,7 +1943,7 @@ Debugger::RunREPL (LanguageType language, const char *repl_options)
         }
     }
 
-    Target *const target = nullptr; // passing in an empty target means the REPL must create one
+    Target *const target = m_target_list.GetSelectedTarget().get(); // Use the custom target
     
     REPLSP repl_sp(REPL::Create(err, language, this, target, repl_options));
 
