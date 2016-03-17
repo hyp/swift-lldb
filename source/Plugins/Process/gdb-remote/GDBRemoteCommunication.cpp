@@ -1343,16 +1343,28 @@ GDBRemoteCommunication::StartDebugserverProcess (const char *url,
                 launch_info.GetEnvironmentEntries().AppendArgument(env[i].c_str());
         }
 
-        // Close STDIN, STDOUT and STDERR.
+        // Close STDIN.
         launch_info.AppendCloseFileAction (STDIN_FILENO);
-        launch_info.AppendCloseFileAction (STDOUT_FILENO);
-        launch_info.AppendCloseFileAction (STDERR_FILENO);
 
-        // Redirect STDIN, STDOUT and STDERR to "/dev/null".
+        // Redirect STDIN to "/dev/null".
         launch_info.AppendSuppressFileAction (STDIN_FILENO, true, false);
-        launch_info.AppendSuppressFileAction (STDOUT_FILENO, false, true);
-        launch_info.AppendSuppressFileAction (STDERR_FILENO, false, true);
-        
+
+        const char *selfdeStdoutPath = getenv("LLDB_SELFDE_STDOUT");
+        if (selfdeStdoutPath) {
+            // Redirect STDOUT and STDERR to a custom output stream.
+            FileSpec output_file_spec{selfdeStdoutPath, false};
+            launch_info.AppendOpenFileAction(STDOUT_FILENO, output_file_spec, false, true);
+            launch_info.AppendDuplicateFileAction(STDOUT_FILENO, STDERR_FILENO);
+        } else {
+            // Close STDOUT and STDERR.
+            launch_info.AppendCloseFileAction (STDOUT_FILENO);
+            launch_info.AppendCloseFileAction (STDERR_FILENO);
+
+            // Redirect STDOUT and STDERR to "/dev/null".
+            launch_info.AppendSuppressFileAction (STDOUT_FILENO, false, true);
+            launch_info.AppendSuppressFileAction (STDERR_FILENO, false, true);
+        }
+
         error = Host::LaunchProcess(launch_info);
         
         if (error.Success() &&
