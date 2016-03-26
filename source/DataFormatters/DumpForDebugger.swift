@@ -269,3 +269,19 @@ func $__lldb__DumpForDebugger(x: Any) -> String {
     return ""
 }
 
+struct __lldb__StringCoreDummy {
+	var _baseAddress: COpaquePointer
+	var _countAndFlags: UInt
+	var _owner: COpaquePointer
+}
+
+// A work around that prevents memory corruption when retaininng/releasing a garbase
+// storage buffer that stores the string's contents.
+func $__lldb__DumpStringForDebugger(x: UnsafePointer<Void>) -> String {
+	var dummy = UnsafePointer<__lldb__StringCoreDummy>(x).memory
+	dummy._owner = nil // Make sure we don't retain/release the owner to prevent memory corruptions.
+	let string = withUnsafePointer(&dummy) { dummyPointer in
+		$__lldb__DumpForDebugger(UnsafePointer<String>(dummyPointer).memory)
+	}
+	return string
+}
