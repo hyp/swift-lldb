@@ -1184,9 +1184,9 @@ SwiftExpressionParser::Parse (DiagnosticManager &diagnostic_manager,
         m_swift_ast_context->GetIRGenOptions().Playground = false;
     }
 
-    // For the expression parser and REPL we want to relax the requirement that you put "try" in
+    // For the expression parser we want to relax the requirement that you put "try" in
     // front of every expression that might throw.
-    if (!playground)
+    if (!playground && !repl)
     {
         m_swift_ast_context->GetLanguageOptions().EnableThrowWithoutTry = true;
     }
