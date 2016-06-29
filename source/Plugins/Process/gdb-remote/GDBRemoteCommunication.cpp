@@ -1343,11 +1343,17 @@ GDBRemoteCommunication::StartDebugserverProcess (const char *url,
                 launch_info.GetEnvironmentEntries().AppendArgument(env[i].c_str());
         }
 
-        // Close STDIN.
-        launch_info.AppendCloseFileAction (STDIN_FILENO);
-
-        // Redirect STDIN to "/dev/null".
-        launch_info.AppendSuppressFileAction (STDIN_FILENO, true, false);
+        const char *selfdeStdinPath = getenv("LLDB_SELFDE_STDIN");
+        if (selfdeStdinPath) {
+            // Redirect STDIN to a custom input stream.
+            FileSpec input_file_spec{selfdeStdinPath, false};
+            launch_info.AppendOpenFileAction(STDIN_FILENO, input_file_spec, true, false);
+        } else {
+            // Close STDIN.
+            launch_info.AppendCloseFileAction (STDIN_FILENO);
+            // Redirect STDIN to "/dev/null".
+            launch_info.AppendSuppressFileAction (STDIN_FILENO, true, false);
+        }
 
         const char *selfdeStdoutPath = getenv("LLDB_SELFDE_STDOUT");
         if (selfdeStdoutPath) {
