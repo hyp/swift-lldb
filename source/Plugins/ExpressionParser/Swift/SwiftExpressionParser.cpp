@@ -44,6 +44,9 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Verifier.h"
+#include "llvm/IR/AutoUpgrade.h"
+#include "llvm/IRReader/IRReader.h"
+#include "llvm/Linker/Linker.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
@@ -1812,7 +1815,40 @@ SwiftExpressionParser::Parse (DiagnosticManager &diagnostic_manager,
                                               line_offset);
         return 1;
     }
-    
+
+    const char *swiftInjectedBCPath = getenv("LLDB_SWIFT_INJECTED_BITCODE");
+    if (swiftInjectedBCPath) {
+        auto Composite = llvm::make_unique<llvm::Module>("lldb_linked_module", llvm::getGlobalContext());
+        llvm::Linker L(*Composite);
+
+        // Load the linked file
+        bool MaterializeMetadata = true;
+        std::string ModuleFileName = swiftInjectedBCPath;
+        llvm::SMDiagnostic Err;
+        std::unique_ptr<llvm::Module> Result =
+        llvm::getLazyIRFileModule(ModuleFileName, Err, llvm::getGlobalContext(), !MaterializeMetadata);
+        if (!Result) {
+            Err.print("lldb", llvm::errs());
+            return 1;
+        }
+
+        if (MaterializeMetadata) {
+          Result->materializeMetadata();
+          UpgradeDebugInfo(*Result);
+        }
+
+        // Link the two modules.
+        if (L.linkInModule(std::move(m_module), llvm::Linker::Flags::None)) {
+            llvm::errs() << "Failed to inject bitcode";
+            return 1;
+        }
+        if (L.linkInModule(std::move(Result), llvm::Linker::Flags::None)) {
+            llvm::errs() << "Failed to inject bitcode";
+            return 1;
+        }
+        m_module = std::move(Composite);
+    }
+
     if (log)
     {
         std::string s;
