@@ -4205,7 +4205,7 @@ SwiftLanguageRuntime::MaskMaybeBridgedPointer (lldb::addr_t addr,
 ConstString
 SwiftLanguageRuntime::GetErrorBackstopName ()
 {
-    return ConstString("swift_errorInMain");
+    return ConstString("");
 }
 
 ConstString
